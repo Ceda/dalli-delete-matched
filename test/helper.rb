@@ -6,7 +6,7 @@ require 'minitest/autorun'
 require 'mocha/setup'
 
 require 'active_support/all'
-require 'active_support/cache/dalli_store'
+require 'active_support/cache/mem_cache_store'
 require 'memcached_mock'
 
 require 'dalli-delete-matched'

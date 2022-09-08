@@ -111,3 +111,4 @@ module Memcached
     attr_accessor :path
   end
 end
+

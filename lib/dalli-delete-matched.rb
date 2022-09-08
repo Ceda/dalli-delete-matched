@@ -1,34 +1,48 @@
-require 'active_support/cache/dalli_store'
+require 'active_support/cache/mem_cache_store'
 require 'active_support/core_ext/module/aliasing'
 
-ActiveSupport::Cache::DalliStore.class_eval do
-
+ActiveSupport::Cache::MemCacheStore.class_eval do
   CACHE_KEYS = "CacheKeys"
 
-  alias_method :old_write_entry, :write_entry
-  def write_entry(key, entry, options)
-    keys = get_cache_keys
-    unless keys.include?(key)
-      keys << key
-      delete CACHE_KEYS
-      return false unless write_cache_keys(keys, options[:connection])
-    end
-    old_write_entry(key, entry, options)
-  end
+  module CacheWithUpdateCacheKey # :nodoc:
+    private
 
-  alias_method :old_delete_entry, :delete_entry
-  def delete_entry(key, options)
-    ret = old_delete_entry(key, options)
-    return false unless ret
-    keys = get_cache_keys
-    if keys.include?(key)
-      keys -= [ key ]
-      delete CACHE_KEYS
-      with { |c| write_cache_keys(keys, c) }
+    def write_entry(key, entry, **options)
+      super
     end
-    ret
-  end
 
+    def delete_entry(key, **options)
+      super
+    end
+
+    alias :old_write_entry :write_entry
+    alias :old_delete_entry :delete_entry
+
+    def write_entry(key, entry, options)
+      keys = get_cache_keys
+      unless keys.include?(key)
+        keys << key
+        delete CACHE_KEYS
+        return false unless write_cache_keys(keys, @data)
+      end
+      old_write_entry(key, entry, options)
+    end
+
+    def delete_entry(key, **options)
+      ret = old_delete_entry(key, options)
+      return false unless ret
+      keys = get_cache_keys
+      if keys.include?(key)
+        keys -= [key]
+        delete CACHE_KEYS
+        @data.with { |c| write_cache_keys(keys, c) }
+      end
+      ret
+    end
+  end
+  prepend CacheWithUpdateCacheKey
+
+  private
   def delete_matched(matcher, options = {})
     ret = true
     deleted_keys = []
@@ -41,12 +55,10 @@ ActiveSupport::Cache::DalliStore.class_eval do
     len = keys.length
     keys -= deleted_keys
     if keys.length < len
-      with { |c| write_cache_keys(keys, c) }
+      @data.with { |c| write_cache_keys(keys, c) }
     end
     ret
   end
-
-private
 
   def write_cache_keys(keys, connection)
     old_write_entry(CACHE_KEYS, keys.to_yaml, { :connection => connection })
@@ -59,5 +71,5 @@ private
       []
     end
   end
-
 end
+
