@@ -18,12 +18,11 @@ Gem::Specification.new do |s|
   s.files = Dir['lib/**/*.rb']
   s.require_path = 'lib'
   s.autorequire = 'builder'
-  s.has_rdoc = false
   s.extra_rdoc_files = Dir['[A-Z]*']
   s.test_files = Dir.glob("test/**/*")
   s.add_development_dependency(%q<minitest>, [">= 5.0.0"])
   s.add_development_dependency(%q<mocha>, [">= 0"])
 
   s.add_dependency 'dalli', '~> 3.2.0'
-  s.add_dependency 'activesupport', '~> 6.1.6'
+  s.add_dependency 'activesupport', '~> 5.2'
 end
